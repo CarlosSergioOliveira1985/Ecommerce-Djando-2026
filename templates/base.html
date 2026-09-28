@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    {% include "parciais/head.html" %}
+    <title> {%block titulo %}{% endblock %}oie mundo</title>
+</head>
+
+<body>
+    {% include "parciais/nav.html" %}
+
+    <main class="container mt-4 mb-4">
+        {% block conteudo %}{% endblock %}
+    </main>
+
+{% include "parciais/footer.html" %}
+
+</body>
+
+</html>
