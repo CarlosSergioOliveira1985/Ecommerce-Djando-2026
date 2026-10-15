@@ -1,7 +1,10 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.views.generic.list import ListView
 from django.views  import View
 from django.http import HttpResponse
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.models import User
+import copy
 
 from . import models
 from . import forms
@@ -13,10 +16,12 @@ class BasePerfil(View):
     def setup(self, *args, **kwargs):
         super().setup(*args, **kwargs)
 
+        self.carrinho = copy.deepcopy(self.request.session.get('carrinho', {}))
+
         self.perfil = None
         
         if self.request.user.is_authenticated:
-            self.perfil = models.Perfil.objects.filter(self.request.user).first()
+            self.perfil = models.Perfil.objects.filter(useruario=self.request.user).first()
             self.contexto = {
                 "userform": forms.UserForm(
                     data=self.request.POST or None,
@@ -35,6 +40,9 @@ class BasePerfil(View):
                 "perfilform": forms.PerfilForm(data=self.request.POST or None),
             }
 
+        if self.request.user.is_authenticated:
+            self.template_name = 'perfil/atualizar.html'
+
         # Sempre define renderizar
         self.renderizar = render(self.request, self.template_name, self.contexto)
 
@@ -46,16 +54,37 @@ class BasePerfil(View):
 # Create your views here.
 class Criar(BasePerfil):
     def post(self, *args, **kwargs ):
-        if not self.contexto['userform'].is_valid() or not self.contexto['perfilform'].is_valid():
+        if not self.contexto['userform'].is_valid():
+        #if not self.contexto['userform'].is_valid() or not self.contexto['perfilform'].is_valid():
             return self.renderizar 
 
         username = self.contexto['userform'].cleaned_data.get('username')
         password = self.contexto['userform'].cleaned_data.get('password')
         email = self.contexto['userform'].cleaned_data.get('email')
+        first_name = self.contexto['userform'].cleaned_data.get('first_name')
+        last_name = self.contexto['userform'].cleaned_data.get('last_name')
 
         # ususário logado 
         if self.request.user.is_authenticated:
-            pass
+            usuario = get_object_or_404(User, username=self.request.user.username)
+            usuario.username = username
+
+            if password:
+                usuario.set_password (password)
+
+            usuario.email = email
+            usuario.last_name = last_name
+            usuario.first_name = first_name
+            usuario.save()
+
+            if not self.perfil:
+                self.contexto['perfilform'].cleaned_data['useruario'] = usuario
+                perfil = models.Perfil(**self.contexto['perfilform'].cleaned_data)
+                perfil.save()
+            else:
+                perfil = self.contexto['perfilform'].save(commit=False)
+                perfil.useruario = usuario
+                perfil.save()
 
         # usuário não logado (novo)
         else:
@@ -67,7 +96,17 @@ class Criar(BasePerfil):
             perfil.useruario = usuario
             perfil.save()
 
-        print("Valido")
+        if password:
+            autentica = authenticate(
+                self.request,
+                username=usuario.username,
+                password=password,
+                )
+
+            if autentica:
+                login(self.request, autentica)
+        self.request.session['carrinho'] = self.carrinho
+        self.request.session.save()
         return self.renderizar    
 
 
