@@ -1,9 +1,10 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic.list import ListView
 from django.views  import View
 from django.http import HttpResponse
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
+from django.contrib import messages
 import copy
 
 from . import models
@@ -107,7 +108,21 @@ class Criar(BasePerfil):
                 login(self.request, autentica)
         self.request.session['carrinho'] = self.carrinho
         self.request.session.save()
+
+        messages.success(
+            self.request,
+            'Seu cadastro foi criado ou atualizado com sucesso'
+
+        )
+        messages.success(
+            self.request,
+            'você fez login e pode concluir sua compra'
+
+        )
+        return redirect('perfil:criar')
         return self.renderizar    
+
+
 
 
 class Atualizar(BasePerfil):
