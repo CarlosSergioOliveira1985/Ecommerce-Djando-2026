@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic.list import ListView
 from django.views  import View
 from django.http import HttpResponse
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib import messages
 import copy
@@ -55,8 +55,8 @@ class BasePerfil(View):
 # Create your views here.
 class Criar(BasePerfil):
     def post(self, *args, **kwargs ):
-        if not self.contexto['userform'].is_valid():
-        #if not self.contexto['userform'].is_valid() or not self.contexto['perfilform'].is_valid():
+        
+        if not self.contexto['userform'].is_valid() or not self.contexto['perfilform'].is_valid():
             return self.renderizar 
 
         username = self.contexto['userform'].cleaned_data.get('username')
@@ -130,10 +130,40 @@ class Atualizar(BasePerfil):
 
 
 class Login(View):
-    def get(self, *args, **kwargs):
-        return HttpResponse('Login') 
+    def post(self, *args, **kwargs):
+        username = self.request.POST.get('username')
+        password = self.request.POST.get('password')
+
+        if not username or not password:
+            messages.error(
+                        self.request,
+                        'Usuário e senha inválidos'
+            )
+            return redirect('perfil:criar')
+
+        useruario = authenticate(
+            self.request, username=username, password= password
+        )
+
+        if not useruario:
+            messages.error(
+                                    self.request,
+                                    'Usuário e senha inválidos'
+                        )
+            return redirect('perfil:criar')
+        
+        login(self.request, user= useruario)
+        messages.success(
+            self.request,
+            'Usuário logado'
+        )
+        return redirect('produto:carrinho')
 
 
 class Logout(View):
     def get(self, *args, **kwargs):
-        return HttpResponse('Logout')  
+        carrinho = copy.deepcopy(self.request.session.get('carrinho'))
+        logout(self.request)
+        self.request.session['carrinho'] = carrinho
+        self.request.session.save()
+        return redirect('produto:lista')
