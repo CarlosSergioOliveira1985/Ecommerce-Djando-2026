@@ -57,6 +57,11 @@ class Criar(BasePerfil):
     def post(self, *args, **kwargs ):
         
         if not self.contexto['userform'].is_valid() or not self.contexto['perfilform'].is_valid():
+            messages.error(
+                self.request,
+                "Existem erros no formulário de cadastro" \
+                "favor verificar abaixo"
+            )
             return self.renderizar 
 
         username = self.contexto['userform'].cleaned_data.get('username')
@@ -119,7 +124,7 @@ class Criar(BasePerfil):
             'você fez login e pode concluir sua compra'
 
         )
-        return redirect('perfil:criar')
+        return redirect('produto:carrinho')
         return self.renderizar    
 
 
