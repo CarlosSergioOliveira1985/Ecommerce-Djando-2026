@@ -11,28 +11,35 @@ from .models import Pedido, ItemPedido
 
 
 class Pagar(View):
+    def get(self, *args, **kwargs):
+        return HttpResponse('Fechar Pedido') 
+
+
+class SalvarPedido(View):
+
+
     template_name = 'pedido/pagar.html'
-    
+        
     def get(self, *args, **kwargs):
         if not self.request.user.is_authenticated:
-             messages.error(
-                  self.request,
-                  "Você precisa fazer login"
-             )
-             return redirect('perfil:criar')
+                messages.error(
+                    self.request,
+                    "Você precisa fazer login"
+                )
+                return redirect('perfil:criar')
 
         if not self.request.session.get('carrinho'):
-                     messages.error(
-                          self.request,
-                          "Adicione produtos em seu carrinho"
-                     )
-                     return redirect('produto:lista')
+                        messages.error(
+                            self.request,
+                            "Adicione produtos em seu carrinho"
+                        )
+                        return redirect('produto:lista')
         
         carrinho = self.request.session.get('carrinho')
         carrinho_variacao_ids = [v for v in carrinho]
         db_variacoes = list(
-              Variacao.objects.select_related('produto')
-              .filter(id__in=carrinho_variacao_ids)
+                Variacao.objects.select_related('produto')
+                .filter(id__in=carrinho_variacao_ids)
             )
 
         for variacao in db_variacoes:
@@ -51,7 +58,7 @@ class Pagar(View):
                     preco_unt_promo
 
                 error_msg_estoque = "Algum produto do seu carrinho não tem a quantidade solicitada."\
-                                     "Reduzimos a quantidade para a quantidade em estoque."
+                                        "Reduzimos a quantidade para a quantidade em estoque."
 
                 if error_msg_estoque:
                     messages.error(
@@ -61,7 +68,7 @@ class Pagar(View):
                     self.request.session.save()
                     return redirect('produto:carrinho')    
 
-                  
+                    
         qtd_total_carrinho =  utils.cart_total_qtd(carrinho) 
         valor_total_carrinho =  utils.cart_totals(carrinho)
 
@@ -76,7 +83,7 @@ class Pagar(View):
 
         ItemPedido.objects.bulk_create(
             [
-                  ItemPedido(
+                    ItemPedido(
                     pedido=pedido,
                     produto=v['produto_nome'],
                     produto_id=v['produto_id'],
@@ -87,20 +94,14 @@ class Pagar(View):
                     quantidade=v['quantidade'],
                     imagem=v['imagem'],
 
-                       
-                  ) for v in carrinho.values()
+                        
+                    ) for v in carrinho.values()
             ]
-              
+                
         )
 
         del self.request.session['carrinho']
         return redirect('pedido:lista')
-
-
-class SalvarPedido(View):
-    def get(self, *args, **kwargs):
-            return HttpResponse('Fechar Pedido')
-    
 
 
 class Detalhe(View):
