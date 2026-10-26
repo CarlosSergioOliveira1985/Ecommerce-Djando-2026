@@ -1,25 +1,27 @@
-from django.shortcuts import render, redirect, reverse
+from django.shortcuts import redirect, reverse
 from django.views.generic import ListView, DetailView
-from django.views  import View
-from django.http import HttpResponse
+from django.views import View
+# from django.http import HttpResponse
 from django.contrib import messages
+
 from produto.models import Variacao
-from utils import utils
 from .models import Pedido, ItemPedido
+
+from utils import utils
 
 
 class DispatchLoginRequiredMixin(View):
-    def dispatch(self,*args, **kwargs):
+    def dispatch(self, *args, **kwargs):
         if not self.request.user.is_authenticated:
-              return redirect('perfil:criar')
+            return redirect('perfil:criar')
 
         return super().dispatch(*args, **kwargs)
 
     def get_queryset(self, *args, **kwargs):
-            qs = super().get_queryset(*args, **kwargs)
-            qs = qs.filter(usuario=self.request.user)
-            return qs
-      
+        qs = super().get_queryset(*args, **kwargs)
+        qs = qs.filter(usuario=self.request.user)
+        return qs
+
 
 class Pagar(DispatchLoginRequiredMixin, DetailView):
     template_name = 'pedido/pagar.html'
@@ -27,107 +29,105 @@ class Pagar(DispatchLoginRequiredMixin, DetailView):
     pk_url_kwarg = 'pk'
     context_object_name = 'pedido'
 
-    
 
 class SalvarPedido(View):
-
-
     template_name = 'pedido/pagar.html'
-        
+
     def get(self, *args, **kwargs):
         if not self.request.user.is_authenticated:
-                messages.error(
-                    self.request,
-                    "Você precisa fazer login"
-                )
-                return redirect('perfil:criar')
+            messages.error(
+                self.request,
+                'Você precisa fazer login.'
+            )
+            return redirect('perfil:criar')
 
         if not self.request.session.get('carrinho'):
-                        messages.error(
-                            self.request,
-                            "Adicione produtos em seu carrinho"
-                        )
-                        return redirect('produto:lista')
-        
+            messages.error(
+                self.request,
+                'Seu carrinho está vazio.'
+            )
+            return redirect('produto:lista')
+
         carrinho = self.request.session.get('carrinho')
         carrinho_variacao_ids = [v for v in carrinho]
-        db_variacoes = list(
-                Variacao.objects.select_related('produto')
-                .filter(id__in=carrinho_variacao_ids)
-            )
+        bd_variacoes = list(
+            Variacao.objects.select_related('produto')
+            .filter(id__in=carrinho_variacao_ids)
+        )
 
-        for variacao in db_variacoes:
+        for variacao in bd_variacoes:
             vid = str(variacao.id)
+
             estoque = variacao.estoque
             qtd_carrinho = carrinho[vid]['quantidade']
             preco_unt = carrinho[vid]['preco_unitario']
             preco_unt_promo = carrinho[vid]['preco_unitario_promocional']
 
-            error_msg_estoque = ""
+            error_msg_estoque = ''
 
-            if estoque <qtd_carrinho:
+            if estoque < qtd_carrinho:
                 carrinho[vid]['quantidade'] = estoque
                 carrinho[vid]['preco_quantitativo'] = estoque * preco_unt
                 carrinho[vid]['preco_quantitativo_promocional'] = estoque * \
                     preco_unt_promo
 
-                error_msg_estoque = "Algum produto do seu carrinho não tem a quantidade solicitada."\
-                                        "Reduzimos a quantidade para a quantidade em estoque."
+                error_msg_estoque = 'Estoque insuficiente para alguns '\
+                    'produtos do seu carrinho. '\
+                    'Reduzimos a quantidade desses produtos. Por favor, '\
+                    'verifique quais produtos foram afetados a seguir.'
 
-                if error_msg_estoque:
-                    messages.error(
-                        self.request,
-                        error_msg_estoque
-                    )
-                    self.request.session.save()
-                    return redirect('produto:carrinho')    
+            if error_msg_estoque:
+                messages.error(
+                    self.request,
+                    error_msg_estoque
+                )
 
-                    
-        qtd_total_carrinho =  utils.cart_total_qtd(carrinho) 
-        valor_total_carrinho =  utils.cart_totals(carrinho)
+                self.request.session.save()
+                return redirect('produto:carrinho')
+
+        qtd_total_carrinho = utils.cart_total_qtd(carrinho)
+        valor_total_carrinho = utils.cart_totals(carrinho)
 
         pedido = Pedido(
             usuario=self.request.user,
             total=valor_total_carrinho,
             qtd_total=qtd_total_carrinho,
-            status="C",
-            )
+            status='C',
+        )
 
         pedido.save()
 
         ItemPedido.objects.bulk_create(
             [
-                    ItemPedido(
+                ItemPedido(
                     pedido=pedido,
                     produto=v['produto_nome'],
                     produto_id=v['produto_id'],
                     variacao=v['variacao_nome'],
                     variacao_id=v['variacao_id'],
                     preco=v['preco_quantitativo'],
-                    preco_promocional=v.get('preco_quantitativo_promocional') or 0,
+                    preco_promocional=v['preco_quantitativo_promocional'],
                     quantidade=v['quantidade'],
                     imagem=v['imagem'],
-
-                        
-                    ) for v in carrinho.values()
+                ) for v in carrinho.values()
             ]
-                
         )
 
         del self.request.session['carrinho']
+
         return redirect(
-              reverse(
-                    'pedido:pagar',
-                    kwargs={
-                         'pk': pedido.pk
-                    }
-              )
+            reverse(
+                'pedido:pagar',
+                kwargs={
+                    'pk': pedido.pk
+                }
+            )
         )
 
 
 class Detalhe(DispatchLoginRequiredMixin, DetailView):
     model = Pedido
-    context_object_name = 'pedidos'
+    context_object_name = 'pedido'
     template_name = 'pedido/detalhe.html'
     pk_url_kwarg = 'pk'
 
@@ -138,6 +138,5 @@ class Lista(DispatchLoginRequiredMixin, ListView):
     template_name = 'pedido/lista.html'
     paginate_by = 10
     ordering = ['-id']
-
     
 
