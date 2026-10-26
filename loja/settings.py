@@ -47,8 +47,7 @@ INSTALLED_APPS = [
     'crispy_bootstrap4',
 
 
-    # TODO: remover debug toolbar
-    'debug_toolbar',
+
 
 
 
@@ -66,8 +65,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
-    # TODO: remover debug toolbar
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
+
 
 
 ]
@@ -171,13 +169,7 @@ SESSION_SAVE_EVERY_REQUEST = False
 # SESSION_FILE_PATH = '/home/luizotavio/Desktop/temp'
 
 
-# TODO: remover debug toolbar
 
-INTERNAL_IPS = [
-    # ...
-    '127.0.0.1',
-    # ...
-]
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
