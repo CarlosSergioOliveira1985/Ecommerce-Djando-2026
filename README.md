@@ -1,4 +1,4 @@
-﻿#Projeto E-commerce com Python e Django
+﻿Projeto E-commerce com Python e Django
 
 Neste vídeo, mostro o desenvolvimento completo de uma loja virtual (e-commerce) utilizando Python e Django, do zero até um site de vendas funcional.
 
